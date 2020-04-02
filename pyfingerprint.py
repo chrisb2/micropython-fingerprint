@@ -8,10 +8,8 @@ All rights reserved.
 
 """
 
-import os
-import serial
-from PIL import Image
-import struct
+from machine import UART
+import ustruct
 
 
 ## Baotou start byte
@@ -135,12 +133,13 @@ class PyFingerprint(object):
     __password = None
     __serial = None
 
-    def __init__(self, port = '/dev/ttyUSB0', baudRate = 57600, address = 0xFFFFFFFF, password = 0x00000000):
+    def __init__(self, port=1, baudRate=57600, address=0xFFFFFFFF,
+                 password=0x00000000):
         """
         Constructor
 
         Arguments:
-            port (str): The port to use
+            port (int): The port to use
             baudRate (int): The baud rate to use. Must be a multiple of 9600!
             address (int): The sensor address
             password (int): The sensor password
@@ -161,23 +160,14 @@ class PyFingerprint(object):
         self.__address = address
         self.__password = password
 
-        ## Initialize PySerial connection
-        self.__serial = serial.Serial(port = port, baudrate = baudRate, bytesize = serial.EIGHTBITS, timeout = 2)
-
-        if ( self.__serial.isOpen() == True ):
-            self.__serial.close()
-
-        self.__serial.open()
+        # Initialize PySerial connection
+        self.__serial = UART(port)
+        self.__serial.init(baudRate, bits=8, parity=None, stop=1, rx=13, tx=12)
 
     def __del__(self):
-        """
-        Destructor
-
-        """
-
-        ## Close connection if still established
-        if ( self.__serial is not None and self.__serial.isOpen() == True ):
-            self.__serial.close()
+        """Destructor."""
+        # Close connection if still established
+        self.__serial.deinit()
 
     def __rightShift(self, n, x):
         """
@@ -238,7 +228,7 @@ class PyFingerprint(object):
             The string (str)
         """
 
-        return struct.pack('@B', byte)
+        return ustruct.pack('@B', byte)
 
     def __stringToByte(self, string):
         """
@@ -251,7 +241,7 @@ class PyFingerprint(object):
             The byte (int)
         """
 
-        return struct.unpack('@B', string)[0]
+        return ustruct.unpack('@B', string)[0]
 
     def __writePacket(self, packetType, packetPayload):
         """
@@ -309,12 +299,14 @@ class PyFingerprint(object):
 
         while ( True ):
 
-            ## Read one byte
-            receivedFragment = self.__serial.read()
+            # Read one byte
+            receivedFragment = self.__serial.read(1)
 
-            if ( len(receivedFragment) != 0 ):
+            if (receivedFragment is not None and len(receivedFragment) != 0):
                 receivedFragment = self.__stringToByte(receivedFragment)
-                ## print 'Received packet fragment = ' + hex(receivedFragment)
+                ## print 'Received packet fragment = ' + hex(receivedFragment
+            else:
+                continue
 
             ## Insert byte if packet seems valid
             receivedPacketData.insert(i, receivedFragment)
@@ -860,92 +852,92 @@ class PyFingerprint(object):
     ## TODO:
     ## Implementation of uploadImage()
 
-    def downloadImage(self, imageDestination):
-        """
-        Downloads the image from image buffer.
-
-        Arguments:
-            imageDestination (str): Path to image
-
-        Raises:
-            ValueError: if directory is not writable
-            Exception: if any error occurs
-        """
-
-        destinationDirectory = os.path.dirname(imageDestination)
-
-        if ( os.access(destinationDirectory, os.W_OK) == False ):
-            raise ValueError('The given destination directory "' + destinationDirectory + '" is not writable!')
-
-        packetPayload = (
-            FINGERPRINT_DOWNLOADIMAGE,
-        )
-
-        self.__writePacket(FINGERPRINT_COMMANDPACKET, packetPayload)
-
-        ## Get first reply packet
-        receivedPacket = self.__readPacket()
-
-        receivedPacketType = receivedPacket[0]
-        receivedPacketPayload = receivedPacket[1]
-
-        if ( receivedPacketType != FINGERPRINT_ACKPACKET ):
-            raise Exception('The received packet is no ack packet!')
-
-        ## DEBUG: The sensor will sent follow-up packets
-        if ( receivedPacketPayload[0] == FINGERPRINT_OK ):
-            pass
-
-        elif ( receivedPacketPayload[0] == FINGERPRINT_ERROR_COMMUNICATION ):
-            raise Exception('Communication error')
-
-        elif ( receivedPacketPayload[0] == FINGERPRINT_ERROR_DOWNLOADIMAGE ):
-            raise Exception('Could not download image')
-
-        else:
-            raise Exception('Unknown error '+ hex(receivedPacketPayload[0]))
-
-        imageData = []
-
-        ## Get follow-up data packets until the last data packet is received
-        while ( receivedPacketType != FINGERPRINT_ENDDATAPACKET ):
-
-            receivedPacket = self.__readPacket()
-
-            receivedPacketType = receivedPacket[0]
-            receivedPacketPayload = receivedPacket[1]
-
-            if ( receivedPacketType != FINGERPRINT_DATAPACKET and receivedPacketType != FINGERPRINT_ENDDATAPACKET ):
-                raise Exception('The received packet is no data packet!')
-
-            imageData.append(receivedPacketPayload)
-
-        ## Initialize image
-        resultImage = Image.new('L', (256, 288), 'white')
-        pixels = resultImage.load()
-        (resultImageWidth, resultImageHeight) = resultImage.size
-        row = 0
-        column = 0
-
-        for y in range(resultImageHeight):
-            for x in range(resultImageWidth):
-
-                ## One byte contains two pixels
-                ## Thanks to Danylo Esterman <soundcracker@gmail.com> for the "multiple with 17" improvement:
-                if (x % 2 == 0):
-                    ## Draw left 4 Bits one byte of package
-                    pixels[x, y] = (imageData[row][column]  >> 4) * 17
-                else:
-                    ## Draw right 4 Bits one byte of package
-                    pixels[x, y] = (imageData[row][column] & 0x0F) * 17
-                    column += 1
-
-                    ## Reset
-                    if (column == len(imageData[row])):
-                        row += 1
-                        column = 0
-
-        resultImage.save(imageDestination)
+    # def downloadImage(self, imageDestination):
+    #     """
+    #     Downloads the image from image buffer.
+    #
+    #     Arguments:
+    #         imageDestination (str): Path to image
+    #
+    #     Raises:
+    #         ValueError: if directory is not writable
+    #         Exception: if any error occurs
+    #     """
+    #
+    #     destinationDirectory = os.path.dirname(imageDestination)
+    #
+    #     if ( os.access(destinationDirectory, os.W_OK) == False ):
+    #         raise ValueError('The given destination directory "' + destinationDirectory + '" is not writable!')
+    #
+    #     packetPayload = (
+    #         FINGERPRINT_DOWNLOADIMAGE,
+    #     )
+    #
+    #     self.__writePacket(FINGERPRINT_COMMANDPACKET, packetPayload)
+    #
+    #     ## Get first reply packet
+    #     receivedPacket = self.__readPacket()
+    #
+    #     receivedPacketType = receivedPacket[0]
+    #     receivedPacketPayload = receivedPacket[1]
+    #
+    #     if ( receivedPacketType != FINGERPRINT_ACKPACKET ):
+    #         raise Exception('The received packet is no ack packet!')
+    #
+    #     ## DEBUG: The sensor will sent follow-up packets
+    #     if ( receivedPacketPayload[0] == FINGERPRINT_OK ):
+    #         pass
+    #
+    #     elif ( receivedPacketPayload[0] == FINGERPRINT_ERROR_COMMUNICATION ):
+    #         raise Exception('Communication error')
+    #
+    #     elif ( receivedPacketPayload[0] == FINGERPRINT_ERROR_DOWNLOADIMAGE ):
+    #         raise Exception('Could not download image')
+    #
+    #     else:
+    #         raise Exception('Unknown error '+ hex(receivedPacketPayload[0]))
+    #
+    #     imageData = []
+    #
+    #     ## Get follow-up data packets until the last data packet is received
+    #     while ( receivedPacketType != FINGERPRINT_ENDDATAPACKET ):
+    #
+    #         receivedPacket = self.__readPacket()
+    #
+    #         receivedPacketType = receivedPacket[0]
+    #         receivedPacketPayload = receivedPacket[1]
+    #
+    #         if ( receivedPacketType != FINGERPRINT_DATAPACKET and receivedPacketType != FINGERPRINT_ENDDATAPACKET ):
+    #             raise Exception('The received packet is no data packet!')
+    #
+    #         imageData.append(receivedPacketPayload)
+    #
+    #     ## Initialize image
+    #     resultImage = Image.new('L', (256, 288), 'white')
+    #     pixels = resultImage.load()
+    #     (resultImageWidth, resultImageHeight) = resultImage.size
+    #     row = 0
+    #     column = 0
+    #
+    #     for y in range(resultImageHeight):
+    #         for x in range(resultImageWidth):
+    #
+    #             ## One byte contains two pixels
+    #             ## Thanks to Danylo Esterman <soundcracker@gmail.com> for the "multiple with 17" improvement:
+    #             if (x % 2 == 0):
+    #                 ## Draw left 4 Bits one byte of package
+    #                 pixels[x, y] = (imageData[row][column]  >> 4) * 17
+    #             else:
+    #                 ## Draw right 4 Bits one byte of package
+    #                 pixels[x, y] = (imageData[row][column] & 0x0F) * 17
+    #                 column += 1
+    #
+    #                 ## Reset
+    #                 if (column == len(imageData[row])):
+    #                     row += 1
+    #                     column = 0
+    #
+    #     resultImage.save(imageDestination)
 
     def convertImage(self, charBufferNumber = FINGERPRINT_CHARBUFFER1):
         """
@@ -1064,7 +1056,7 @@ class PyFingerprint(object):
 
                 for i in range(0, len(templateIndex)):
                     ## Index not used?
-                    if ( templateIndex[i] == False ):
+                    if ( templateIndex[i] is False ):
                         positionNumber = (len(templateIndex) * page) + i
                         break
 
