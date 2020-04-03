@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 """
 PyFingerprint
 Copyright (C) 2015 Bastian Raschke <bastian.raschke@posteo.de>
@@ -8,7 +5,6 @@ All rights reserved.
 
 """
 
-from machine import UART
 import ustruct
 
 
@@ -133,24 +129,20 @@ class PyFingerprint(object):
     __password = None
     __serial = None
 
-    def __init__(self, port=1, baudRate=57600, address=0xFFFFFFFF,
-                 password=0x00000000):
+    def __init__(self, uart, address=0xFFFFFFFF, password=0x00000000):
         """
-        Constructor
+        Constructor.
 
         Arguments:
-            port (int): The port to use
-            baudRate (int): The baud rate to use. Must be a multiple of 9600!
+            uart: Instance of machine.UART. The baud rate set in the UART
+            instance MUST be a multiple of 9600. Passing in a UART instance
+            enables different flavors of MicroPython to be supported.
             address (int): The sensor address
             password (int): The sensor password
 
         Raises:
-            ValueError: if baud rate, address or password are invalid
+            ValueError: if address or password are invalid
         """
-
-        if ( baudRate < 9600 or baudRate > 115200 or baudRate % 9600 != 0 ):
-            raise ValueError('The given baud rate is invalid!')
-
         if ( address < 0x00000000 or address > 0xFFFFFFFF ):
             raise ValueError('The given address is invalid!')
 
@@ -161,8 +153,7 @@ class PyFingerprint(object):
         self.__password = password
 
         # Initialize PySerial connection
-        self.__serial = UART(port)
-        self.__serial.init(baudRate, bits=8, parity=None, stop=1, rx=13, tx=12)
+        self.__serial = uart
 
     def __del__(self):
         """Destructor."""
