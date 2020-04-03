@@ -30,6 +30,7 @@ FINGERPRINT_SETSYSTEMPARAMETER = 0x0E
 FINGERPRINT_GETSYSTEMPARAMETERS = 0x0F
 FINGERPRINT_TEMPLATEINDEX = 0x1F
 FINGERPRINT_TEMPLATECOUNT = 0x1D
+FINGERPRINT_LED_CONFIG = 0x35
 
 FINGERPRINT_READIMAGE = 0x01
 
@@ -60,6 +61,20 @@ FINGERPRINT_DOWNLOADCHARACTERISTICS = 0x08
 FINGERPRINT_SETSYSTEMPARAMETER_BAUDRATE = 4
 FINGERPRINT_SETSYSTEMPARAMETER_SECURITY_LEVEL = 5
 FINGERPRINT_SETSYSTEMPARAMETER_PACKAGE_SIZE = 6
+
+## Parameters of ledOn()
+##
+
+FINGERPRINT_LED_BREATHING = 0x01
+FINGERPRINT_LED_FLASHING = 0x02
+FINGERPRINT_LED_CONTINUOUS = 0x03
+FINGERPRINT_LED_OFF = 0x04
+FINGERPRINT_LED_GRADUAL_ON = 0x05
+FINGERPRINT_LED_GRADUAL_OFF = 0x06
+
+FINGERPRINT_LED_RED = 0x01
+FINGERPRINT_LED_BLUE = 0x02
+FINGERPRINT_LED_PURPLE = 0x03
 
 ## Packet reply confirmations
 ##
@@ -1530,3 +1545,58 @@ class PyFingerprint(object):
                 completePayload.append(receivedPacketPayload[i])
 
         return completePayload
+
+    def ledOn(self, colour=FINGERPRINT_LED_RED,
+              control=FINGERPRINT_LED_BREATHING,
+              flashSpeed=0x7D, flashCount=0x00):
+        """
+        Turn on sensor LED.
+
+        Arguments:
+            colour: one of FINGERPRINT_LED_RED (default), FINGERPRINT_LED_BLUE,
+            FINGERPRINT_LED_PURPLE
+            control: one of FINGERPRINT_LED_BREATHING (default),
+            FINGERPRINT_LED_BLUE, FINGERPRINT_LED_PURPLE
+            FINGERPRINT_LED_CONTINUOUS, FINGERPRINT_LED_OFF,
+            FINGERPRINT_LED_GRADUAL_ON, FINGERPRINT_LED_GRADUAL_OFF
+            flashSpeed: 0 (fast) to 255 (slow) (default 125)
+            flashCount: 0 (infinite) to 255 (default 0)
+
+        Raises:
+            Exception: if an error occured
+        """
+        self.__led(control, colour, flashSpeed, flashCount)
+
+    def ledOff(self):
+        """
+        Turn off sensor LED.
+
+        Raises:
+            Exception: if an error occured
+        """
+        self.__led(FINGERPRINT_LED_OFF, 0x00, 0x00, 0x00)
+
+    def __led(self, control, colour, flashSpeed, flashCount):
+        packetPayload = (
+            FINGERPRINT_LED_CONFIG,
+            control,
+            flashSpeed,
+            colour,
+            flashCount
+        )
+
+        self.__writePacket(FINGERPRINT_COMMANDPACKET, packetPayload)
+        receivedPacket = self.__readPacket()
+
+        receivedPacketType = receivedPacket[0]
+        receivedPacketPayload = receivedPacket[1]
+
+        if (receivedPacketType != FINGERPRINT_ACKPACKET):
+            raise Exception('The received packet is no ack packet!')
+
+        if (receivedPacketPayload[0] == FINGERPRINT_OK):
+            pass
+        elif (receivedPacketPayload[0] == FINGERPRINT_ERROR_COMMUNICATION):
+            raise Exception('Communication error')
+        else:
+            raise Exception('Unknown error ' + hex(receivedPacketPayload[0]))
