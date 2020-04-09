@@ -1,0 +1,13 @@
+site_name: Micropython Finger Print
+loaders:
+  - type: python
+    modules: [pyfingerprint]
+    search_path: [.]
+processors:
+  - type: filter
+  - type: smart
+renderer:
+  type: markdown
+  filename: docs/api.md
+  html_headings: true
+  render_toc: true
