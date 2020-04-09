@@ -59,22 +59,34 @@ FINGERPRINT_DOWNLOADCHARACTERISTICS = 0x08
 ##
 
 FINGERPRINT_SETSYSTEMPARAMETER_BAUDRATE = 4
+"""Set the baud rate."""
 FINGERPRINT_SETSYSTEMPARAMETER_SECURITY_LEVEL = 5
+"""Set the security level."""
 FINGERPRINT_SETSYSTEMPARAMETER_PACKAGE_SIZE = 6
+"""Set the package size."""
 
 ## Parameters of ledOn()
 ##
 
 FINGERPRINT_LED_BREATHING = 0x01
+"""Breathing LED."""
 FINGERPRINT_LED_FLASHING = 0x02
+"""Flashing LED."""
 FINGERPRINT_LED_CONTINUOUS = 0x03
+"""Continuous LED."""
 FINGERPRINT_LED_OFF = 0x04
+"""LED off."""
 FINGERPRINT_LED_GRADUAL_ON = 0x05
+"""Turn LED on gradually."""
 FINGERPRINT_LED_GRADUAL_OFF = 0x06
+"""Turn LED off gradually."""
 
 FINGERPRINT_LED_RED = 0x01
+"""Red LED."""
 FINGERPRINT_LED_BLUE = 0x02
+"""Blue LED."""
 FINGERPRINT_LED_PURPLE = 0x03
+"""Purple LED."""
 
 ## Packet reply confirmations
 ##
@@ -1552,6 +1564,9 @@ class PyFingerprint(object):
         """
         Turn on sensor LED.
 
+        Author:
+            Chris Borrill <chris.borrill@gmail.com>
+
         Arguments:
             colour: one of FINGERPRINT_LED_RED (default), FINGERPRINT_LED_BLUE,
             FINGERPRINT_LED_PURPLE
@@ -1570,6 +1585,9 @@ class PyFingerprint(object):
     def ledOff(self):
         """
         Turn off sensor LED.
+
+        Author:
+            Chris Borrill <chris.borrill@gmail.com>
 
         Raises:
             Exception: if an error occured
