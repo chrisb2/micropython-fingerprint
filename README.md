@@ -14,10 +14,11 @@ from pyfingerprint import PyFingerprint
 from machine import UART
 
 sensorSerial = UART(1)
-sensorSerial.init(57600, bits=8, parity=None, stop=1, rx=13, tx=12)
+sensorSerial.init(57600, bits=8, parity=None, stop=1, rx=13, tx=12) # ESP32
+# sensorSerial.init(57600, bits=8, parity=None, stop=1) # pyboard v1.1 (pins X9, X10)
 
 f = PyFingerprint(sensorSerial)
-f.verifyPassword()
+f.verifyPassword() # should return True
 ```
 
 Further example programs which should be easily adapted can be found with the original [pyfingerprint](https://github.com/bastianraschke/pyfingerprint/tree/Development/src/files/examples) library.
