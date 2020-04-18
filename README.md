@@ -14,8 +14,10 @@ from pyfingerprint import PyFingerprint
 from machine import UART
 
 sensorSerial = UART(1)
-sensorSerial.init(57600, bits=8, parity=None, stop=1, rx=13, tx=12) # ESP32
-# sensorSerial.init(57600, bits=8, parity=None, stop=1) # pyboard v1.1 (pins X9, X10)
+# ESP32 (pins 12, 13)
+sensorSerial.init(57600, bits=8, parity=None, stop=1, rx=13, tx=12)
+# pyboard v1.1 (pins X9, X10)
+# sensorSerial.init(57600, bits=8, parity=None, stop=1)
 
 f = PyFingerprint(sensorSerial)
 f.verifyPassword() # should return True
