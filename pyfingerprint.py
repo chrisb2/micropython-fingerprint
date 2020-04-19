@@ -55,6 +55,11 @@ FINGERPRINT_UPLOADCHARACTERISTICS = 0x09
 ## Note: The documentation mean upload to host computer.
 FINGERPRINT_DOWNLOADCHARACTERISTICS = 0x08
 
+FINGERPRINT_SOFT_RESET = 0x3D
+FINGERPRINT_CANCEL_INSTRUCTION = 0x30
+FINGERPRINT_CHECK_SENSOR = 0x36
+FINGERPRINT_HANDSHAKE = 0x40
+
 ## Parameters of setSystemParameter()
 ##
 
@@ -1467,6 +1472,98 @@ class PyFingerprint(object):
                 completePayload.append(receivedPacketPayload[i])
 
         return completePayload
+
+    def softReset(self):
+        """Soft reset the sensor.
+
+        Author:
+            Chris Borrill <chris.borrill@gmail.com>
+        """
+        packetPayload = (
+            FINGERPRINT_SOFT_RESET,
+        )
+        self.__writePacket(FINGERPRINT_COMMANDPACKET, packetPayload)
+        receivedPacket = self.__readPacket()
+
+        receivedPacketType = receivedPacket[0]
+        receivedPacketPayload = receivedPacket[1]
+
+        if (receivedPacketType != FINGERPRINT_ACKPACKET):
+            raise Exception('The received packet is no ack packet!')
+
+        if (receivedPacketPayload[0] != FINGERPRINT_OK):
+            raise Exception('Unknown error ' + hex(receivedPacketPayload[0]))
+
+        # Wait for handshake on reset completion
+        while(self.__serial.read(1) != b'U'):
+            pass
+
+    def checkSensor(self):
+        """Check the sensor is in a working state.
+
+        Author:
+            Chris Borrill <chris.borrill@gmail.com>
+
+        Returns:
+            True if the sensor is working correctly.
+        """
+        packetPayload = (
+            FINGERPRINT_CHECK_SENSOR,
+        )
+        self.__writePacket(FINGERPRINT_COMMANDPACKET, packetPayload)
+        receivedPacket = self.__readPacket()
+
+        receivedPacketType = receivedPacket[0]
+        receivedPacketPayload = receivedPacket[1]
+
+        if (receivedPacketType != FINGERPRINT_ACKPACKET):
+            raise Exception('The received packet is no ack packet!')
+
+        return receivedPacketPayload[0] == FINGERPRINT_OK
+
+    def handshake(self):
+        """Hand sake with the sensor.
+
+        Author:
+            Chris Borrill <chris.borrill@gmail.com>
+
+        Returns:
+            True if the sensor is working normally.
+        """
+        packetPayload = (
+            FINGERPRINT_HANDSHAKE,
+        )
+        self.__writePacket(FINGERPRINT_COMMANDPACKET, packetPayload)
+        receivedPacket = self.__readPacket()
+
+        receivedPacketType = receivedPacket[0]
+        receivedPacketPayload = receivedPacket[1]
+
+        if (receivedPacketType != FINGERPRINT_ACKPACKET):
+            raise Exception('The received packet is no ack packet!')
+
+        return receivedPacketPayload[0] == FINGERPRINT_OK
+
+    def cancelInstruction(self):
+        """Cancel last intruction to the sensor.
+
+        Author:
+            Chris Borrill <chris.borrill@gmail.com>
+        """
+        packetPayload = (
+            FINGERPRINT_CANCEL_INSTRUCTION,
+        )
+        self.__writePacket(FINGERPRINT_COMMANDPACKET, packetPayload)
+        receivedPacket = self.__readPacket()
+
+        receivedPacketType = receivedPacket[0]
+        receivedPacketPayload = receivedPacket[1]
+
+        if (receivedPacketType != FINGERPRINT_ACKPACKET):
+            raise Exception('The received packet is no ack packet!')
+
+        if (receivedPacketPayload[0] != FINGERPRINT_OK):
+            raise Exception('Unknown error ' + hex(receivedPacketPayload[0]))
 
     def ledOn(self, colour=FINGERPRINT_LED_RED,
               control=FINGERPRINT_LED_BREATHING,

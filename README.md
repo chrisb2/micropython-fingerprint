@@ -25,8 +25,19 @@ f.verifyPassword() # should return True
 
 Further example programs which should be easily adapted can be found with the original [pyfingerprint](https://github.com/bastianraschke/pyfingerprint/tree/Development/src/files/examples) library.
 
-# Documentation
+# Trouble Shooting
 
+## Download characteristics packet corruption
+```
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "pyfingerprint.py", line 1461, in downloadCharacteristics
+  File "pyfingerprint.py", line 372, in __readPacket
+Exception: The received packet is corrupted (the checksum is wrong)!
+```
+Solution - reduce baud rate
+
+# Documentation
 
 * [pyfingerprint](#.pyfingerprint)
   * [FINGERPRINT\_SETSYSTEMPARAMETER\_BAUDRATE](#.pyfingerprint.FINGERPRINT_SETSYSTEMPARAMETER_BAUDRATE)
@@ -72,6 +83,10 @@ Further example programs which should be easily adapted can be found with the or
     * [uploadCharacteristics](#.pyfingerprint.PyFingerprint.uploadCharacteristics)
     * [generateRandomNumber](#.pyfingerprint.PyFingerprint.generateRandomNumber)
     * [downloadCharacteristics](#.pyfingerprint.PyFingerprint.downloadCharacteristics)
+    * [softReset](#.pyfingerprint.PyFingerprint.softReset)
+    * [checkSensor](#.pyfingerprint.PyFingerprint.checkSensor)
+    * [handshake](#.pyfingerprint.PyFingerprint.handshake)
+    * [cancelInstruction](#.pyfingerprint.PyFingerprint.cancelInstruction)
     * [ledOn](#.pyfingerprint.PyFingerprint.ledOn)
     * [ledOff](#.pyfingerprint.PyFingerprint.ledOff)
 
@@ -749,6 +764,62 @@ Downloads the finger characteristics from the specified char buffer.
 
 - `ValueError` - if passed char buffer is invalid
 - `Exception` - if any error occurs
+
+<a name=".pyfingerprint.PyFingerprint.softReset"></a>
+#### softReset
+
+```python
+ | softReset()
+```
+
+Soft reset the sensor.
+
+Author:
+    Chris Borrill <chris.borrill@gmail.com>
+
+<a name=".pyfingerprint.PyFingerprint.checkSensor"></a>
+#### checkSensor
+
+```python
+ | checkSensor()
+```
+
+Check the sensor is in a working state.
+
+Author:
+Chris Borrill <chris.borrill@gmail.com>
+
+**Returns**:
+
+  True if the sensor is working correctly.
+
+<a name=".pyfingerprint.PyFingerprint.handshake"></a>
+#### handshake
+
+```python
+ | handshake()
+```
+
+Hand sake with the sensor.
+
+Author:
+Chris Borrill <chris.borrill@gmail.com>
+
+**Returns**:
+
+  True if the sensor is working normally.
+
+<a name=".pyfingerprint.PyFingerprint.cancelInstruction"></a>
+#### cancelInstruction
+
+```python
+ | cancelInstruction()
+```
+
+Cancel last intruction to the sensor.
+
+Author:
+    Chris Borrill <chris.borrill@gmail.com>
 
 <a name=".pyfingerprint.PyFingerprint.ledOn"></a>
 #### ledOn
