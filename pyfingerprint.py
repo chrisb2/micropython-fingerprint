@@ -3,7 +3,6 @@ PyFingerprint.
 
 Copyright (C) 2015 Bastian Raschke <bastian.raschke@posteo.de>
 All rights reserved.
-
 """
 
 import ustruct
@@ -142,6 +141,8 @@ class PyFingerprint(object):
             enables different flavors of MicroPython to be supported.
             address (int): The sensor address
             password (int): The sensor password
+            log_level: control logging of set/recieved data.
+            Set to logging.DEBUG to see output.
 
         Raises:
             ValueError: if address or password are invalid
@@ -152,16 +153,16 @@ class PyFingerprint(object):
         if (password < 0x00000000 or password > 0xFFFFFFFF):
             raise ValueError('The given password is invalid!')
 
+        # TODO - handle root logger scenario
         logging.basicConfig(level=log_level)
         self._log = logging.getLogger("pyfingerprint")
 
         self.__address = address
         self.__password = password
-
-        # Initialize PySerial connection
         self.__serial = uart
 
-        self.__payloadBuffer = bytearray(128)
+        # TODO  - use getMaxPackageSize?
+        self.__payloadBuffer = bytearray(32)
 
     def __del__(self):
         """Destructor."""
@@ -311,7 +312,7 @@ class PyFingerprint(object):
         confirmationCode = self.__serial.read(1)[0]
         receivedChecksum = self.__readChecksum()
         # TODO - verify checksum
-        self.__logPackage("Read", packageType,
+        self.__logPackage("Read ", packageType,
                           1, receivedChecksum, [confirmationCode])
         return confirmationCode
 
@@ -320,7 +321,7 @@ class PyFingerprint(object):
         return self.__leftShift(checksum[0], 8) | checksum[1]
 
     def __logPackage(self, msg, type, payloadLength, checksum, payload):
-        self._log.debug("%s type:0x%02x, payloadLength:%d, checksum:%d, payload:[%s]",
+        self._log.debug("%s type:0x%02x, length:%2d, checksum:%4d, payload:[%s]",
                         msg, type, payloadLength, checksum,
                         ' '.join('0x{:02x}'.format(x) for x in payload))
 
@@ -351,7 +352,7 @@ class PyFingerprint(object):
         if (receivedChecksum != packetChecksum):
             raise Exception('The received packet is corrupted (the checksum is wrong)!')
 
-        self.__logPackage("Read", packageType, packagePayloadLength,
+        self.__logPackage("Read ", packageType, packagePayloadLength,
                           packetChecksum,
                           memoryview(self.__payloadBuffer)[:packagePayloadLength])
         return (packageType, self.__payloadBuffer)
@@ -1010,9 +1011,6 @@ class PyFingerprint(object):
             charBufferNumber (int): The char buffer. Use
             `FINGERPRINT_CHARBUFFER1` or `FINGERPRINT_CHARBUFFER2`.
 
-        Returns:
-            True if everything is right.
-
         Raises:
             ValueError: if passed char buffer or characteristics are invalid
             Exception: if any error occurs
@@ -1045,6 +1043,7 @@ class PyFingerprint(object):
         self.__writePacket(FINGERPRINT_ENDDATAPACKET,
                            memoryview(self.__payloadBuffer)[:count])
         self.__clearPayloadBuffer()
+        # TODO - reimplement success check
 
     def generateRandomNumber(self):
         """
@@ -1167,7 +1166,7 @@ class PyFingerprint(object):
             checksum = self.__serial.read(2)
             receivedChecksum = self.__leftShift(checksum[0], 8) | checksum[1]
 
-            self._log.debug("Down type:0x%02x, length:%d, checksum:%d(%d), checksum:[%s], payload:[%s]",
+            self._log.debug("Download type:0x%02x, length:%3d, checksum:%4d(%4d), checksum:[%s], payload:[%s]",
                             packageType, packagePayloadLength,
                             receivedChecksum, calculatedChecksum,
                             ' '.join('0x{:02x}'.format(x) for x in checksum),
@@ -1175,6 +1174,7 @@ class PyFingerprint(object):
 
             # if (receivedChecksum != packageChecksum):
             #     raise Exception('The received packet is corrupted (the checksum is wrong)!')
+        self.__clearPayloadBuffer()
 
     def softReset(self):
         """Soft reset the sensor.
@@ -1195,6 +1195,7 @@ class PyFingerprint(object):
         self.__handleAcknowledgement(confirmationCode)
 
         # Wait for handshake on reset completion
+        # TODO - timeout?
         while(self.__serial.read(1) != b'U'):
             pass
 
