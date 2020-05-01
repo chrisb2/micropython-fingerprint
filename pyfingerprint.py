@@ -917,7 +917,7 @@ class PyFingerprint(object):
 
     def compareCharacteristics(self):
         """
-        Compare the finger characteristics of char buffer 1 with char buffer 2 and returns the accuracy score.
+        Compare the finger characteristics of char buffer 1 with char buffer 2.
 
         Returns:
             The accuracy score (int). 0 means fingers are not the same.
@@ -1172,8 +1172,8 @@ class PyFingerprint(object):
                             ' '.join('0x{:02x}'.format(x) for x in checksum),
                             ' '.join('0x{:02x}'.format(x) for x in memoryview(self.__payloadBuffer)[:packagePayloadLength]))
 
-            # if (receivedChecksum != packageChecksum):
-            #     raise Exception('The received packet is corrupted (the checksum is wrong)!')
+            if (receivedChecksum != calculatedChecksum):
+                raise Exception('Package checksum error, received:%s, calculated:%s' % (receivedChecksum, calculatedChecksum))
         self.__clearPayloadBuffer()
 
     def softReset(self):
